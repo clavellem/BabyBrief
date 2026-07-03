@@ -6,6 +6,8 @@ import {
   Bed,
   CalendarDays,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clipboard,
   Clock3,
   Copy,
@@ -100,15 +102,31 @@ function toInputValue(date: Date) {
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
+function toDateInputValue(date: Date) {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
+}
+
+function fromDateInputValue(value: string) {
+  return new Date(`${value}T12:00:00`);
+}
+
 function fromInputValue(value: string) {
   return new Date(value).toISOString();
 }
 
-function todayAt(time: string) {
+function dateAt(baseDate: Date, time: string) {
   const [hours, minutes] = time.split(":").map(Number);
-  const date = new Date();
+  const date = new Date(baseDate);
   date.setHours(hours, minutes, 0, 0);
   return date.toISOString();
+}
+
+function offsetDate(daysAgo: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  date.setHours(12, 0, 0, 0);
+  return date;
 }
 
 function addMinutes(iso: string, minutes: number) {
@@ -125,6 +143,13 @@ function formatTime(iso: string) {
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat(undefined, {
     weekday: "long",
+    month: "short",
+    day: "numeric"
+  }).format(date);
+}
+
+function formatShortDate(date: Date) {
+  return new Intl.DateTimeFormat(undefined, {
     month: "short",
     day: "numeric"
   }).format(date);
@@ -149,10 +174,12 @@ function minutesBetween(startIso: string, endIso: string) {
   return Math.max(1, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60000));
 }
 
-function isToday(iso: string) {
-  const date = new Date(iso);
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
+function isSameDay(iso: string, date: Date) {
+  return new Date(iso).toDateString() === date.toDateString();
+}
+
+function isDateToday(date: Date) {
+  return date.toDateString() === new Date().toDateString();
 }
 
 function eventDate(event: BabyEvent) {
@@ -182,13 +209,22 @@ function latestEvent<T extends BabyEvent["type"]>(events: BabyEvent[], type: T) 
 }
 
 function sampleDay(): BabyEvent[] {
-  const napStart = todayAt("08:50");
-  const napEnd = todayAt("09:35");
+  const today = offsetDate(0);
+  const yesterday = offsetDate(1);
+  const twoDaysAgo = offsetDate(2);
+  const napStart = dateAt(today, "08:50");
+  const napEnd = dateAt(today, "09:35");
+  const yesterdayNapStart = dateAt(yesterday, "09:10");
+  const yesterdayNapEnd = dateAt(yesterday, "10:02");
+  const yesterdayNap2Start = dateAt(yesterday, "13:20");
+  const yesterdayNap2End = dateAt(yesterday, "14:05");
+  const twoDaysNapStart = dateAt(twoDaysAgo, "08:40");
+  const twoDaysNapEnd = dateAt(twoDaysAgo, "09:18");
   return [
     {
       id: "sample-feed-1",
       type: "feeding",
-      timestamp: todayAt("07:30"),
+      timestamp: dateAt(today, "07:30"),
       feedingType: "bottle",
       amountOz: 5
     },
@@ -203,21 +239,97 @@ function sampleDay(): BabyEvent[] {
     {
       id: "sample-diaper-1",
       type: "diaper",
-      timestamp: todayAt("09:45"),
+      timestamp: dateAt(today, "09:45"),
       diaperType: "wet"
     },
     {
       id: "sample-feed-2",
       type: "feeding",
-      timestamp: todayAt("10:20"),
+      timestamp: dateAt(today, "10:20"),
       feedingType: "bottle",
       amountOz: 4
     },
     {
       id: "sample-diaper-2",
       type: "diaper",
-      timestamp: todayAt("11:50"),
+      timestamp: dateAt(today, "11:50"),
       diaperType: "mixed"
+    },
+    {
+      id: "sample-yesterday-feed-1",
+      type: "feeding",
+      timestamp: dateAt(yesterday, "06:55"),
+      feedingType: "bottle",
+      amountOz: 4.5
+    },
+    {
+      id: "sample-yesterday-diaper-1",
+      type: "diaper",
+      timestamp: dateAt(yesterday, "07:20"),
+      diaperType: "wet"
+    },
+    {
+      id: "sample-yesterday-nap-1",
+      type: "nap",
+      startTime: yesterdayNapStart,
+      endTime: yesterdayNapEnd,
+      durationMinutes: minutesBetween(yesterdayNapStart, yesterdayNapEnd)
+    },
+    {
+      id: "sample-yesterday-feed-2",
+      type: "feeding",
+      timestamp: dateAt(yesterday, "10:25"),
+      feedingType: "nursing",
+      note: "Good full feed."
+    },
+    {
+      id: "sample-yesterday-diaper-2",
+      type: "diaper",
+      timestamp: dateAt(yesterday, "11:05"),
+      diaperType: "dirty"
+    },
+    {
+      id: "sample-yesterday-nap-2",
+      type: "nap",
+      startTime: yesterdayNap2Start,
+      endTime: yesterdayNap2End,
+      durationMinutes: minutesBetween(yesterdayNap2Start, yesterdayNap2End),
+      note: "Needed a little resettling."
+    },
+    {
+      id: "sample-yesterday-feed-3",
+      type: "feeding",
+      timestamp: dateAt(yesterday, "14:30"),
+      feedingType: "bottle",
+      amountOz: 5
+    },
+    {
+      id: "sample-two-days-feed-1",
+      type: "feeding",
+      timestamp: dateAt(twoDaysAgo, "07:05"),
+      feedingType: "bottle",
+      amountOz: 5
+    },
+    {
+      id: "sample-two-days-nap-1",
+      type: "nap",
+      startTime: twoDaysNapStart,
+      endTime: twoDaysNapEnd,
+      durationMinutes: minutesBetween(twoDaysNapStart, twoDaysNapEnd),
+      note: "Short morning nap."
+    },
+    {
+      id: "sample-two-days-diaper-1",
+      type: "diaper",
+      timestamp: dateAt(twoDaysAgo, "09:35"),
+      diaperType: "mixed"
+    },
+    {
+      id: "sample-two-days-feed-2",
+      type: "feeding",
+      timestamp: dateAt(twoDaysAgo, "11:15"),
+      feedingType: "bottle",
+      amountOz: 4
     }
   ];
 }
@@ -273,26 +385,27 @@ function buildPrediction(events: BabyEvent[], ageMonths: number) {
   };
 }
 
-function buildInsights(events: BabyEvent[], ageMonths: number) {
+function buildInsights(events: BabyEvent[], ageMonths: number, selectedDate: Date) {
   const insights: string[] = [];
-  const todayEvents = events.filter((event) => isToday(eventDate(event)));
-  const lastDiaper = latestEvent(todayEvents, "diaper");
-  const lastNap = latestEvent(todayEvents, "nap");
-  const ounces = bottleTotal(todayEvents);
-  const prediction = buildPrediction(todayEvents, ageMonths);
+  const selectedEvents = events.filter((event) => isSameDay(eventDate(event), selectedDate));
+  const viewingToday = isDateToday(selectedDate);
+  const lastDiaper = latestEvent(selectedEvents, "diaper");
+  const lastNap = latestEvent(selectedEvents, "nap");
+  const ounces = bottleTotal(selectedEvents);
+  const prediction = buildPrediction(selectedEvents, ageMonths);
 
   if (!lastDiaper) {
-    insights.push("No diaper logged yet today.");
+    insights.push(viewingToday ? "No diaper logged yet today." : "No diaper logged for this day.");
   } else {
     const minutes = minutesBetween(lastDiaper.timestamp, new Date().toISOString());
-    if (minutes >= 180) insights.push("No diaper logged in the last 3 hours.");
+    if (viewingToday && minutes >= 180) insights.push("No diaper logged in the last 3 hours.");
   }
 
   if (lastNap && lastNap.durationMinutes < 45) {
     insights.push("Last nap was shorter than 45 minutes.");
   }
 
-  if (prediction.lowerIso && prediction.upperIso) {
+  if (viewingToday && prediction.lowerIso && prediction.upperIso) {
     const now = Date.now();
     const lower = new Date(prediction.lowerIso).getTime();
     const upper = new Date(prediction.upperIso).getTime();
@@ -301,28 +414,30 @@ function buildInsights(events: BabyEvent[], ageMonths: number) {
     }
   }
 
-  if (ounces > 0) insights.push(`Bottle total today: ${ounces} oz.`);
+  if (ounces > 0) insights.push(`Bottle total ${viewingToday ? "today" : "for this day"}: ${ounces} oz.`);
 
-  return insights.length ? insights : ["Today is lightly logged so far."];
+  return insights.length ? insights : [viewingToday ? "Today is lightly logged so far." : "This day is lightly logged."];
 }
 
-function buildHandoff(events: BabyEvent[], settings: BabySettings): HandoffSummary {
-  const todayEvents = events.filter((event) => isToday(eventDate(event)));
-  const feedCount = todayEvents.filter((event) => event.type === "feeding").length;
-  const diapers = todayEvents.filter((event): event is Extract<BabyEvent, { type: "diaper" }> => event.type === "diaper");
-  const naps = todayEvents.filter((event): event is Extract<BabyEvent, { type: "nap" }> => event.type === "nap");
+function buildHandoff(events: BabyEvent[], settings: BabySettings, selectedDate: Date): HandoffSummary {
+  const selectedEvents = events.filter((event) => isSameDay(eventDate(event), selectedDate));
+  const viewingToday = isDateToday(selectedDate);
+  const dayPhrase = viewingToday ? "Today" : formatDate(selectedDate);
+  const feedCount = selectedEvents.filter((event) => event.type === "feeding").length;
+  const diapers = selectedEvents.filter((event): event is Extract<BabyEvent, { type: "diaper" }> => event.type === "diaper");
+  const naps = selectedEvents.filter((event): event is Extract<BabyEvent, { type: "nap" }> => event.type === "nap");
   const napTotal = naps.reduce((total, event) => total + event.durationMinutes, 0);
-  const lastFeed = latestEvent(todayEvents, "feeding");
-  const lastNap = latestEvent(todayEvents, "nap");
-  const lastDiaper = latestEvent(todayEvents, "diaper");
-  const prediction = buildPrediction(todayEvents, settings.babyAgeMonths);
+  const lastFeed = latestEvent(selectedEvents, "feeding");
+  const lastNap = latestEvent(selectedEvents, "nap");
+  const lastDiaper = latestEvent(selectedEvents, "diaper");
+  const prediction = buildPrediction(selectedEvents, settings.babyAgeMonths);
   const missing: string[] = [];
 
-  if (!lastFeed) missing.push("No feed has been logged yet today.");
-  if (!lastNap) missing.push("No completed nap has been logged yet today.");
-  if (!lastDiaper) missing.push("No diaper has been logged yet today.");
+  if (!lastFeed) missing.push(`No feed has been logged for ${viewingToday ? "today" : "this day"}.`);
+  if (!lastNap) missing.push(`No completed nap has been logged for ${viewingToday ? "today" : "this day"}.`);
+  if (!lastDiaper) missing.push(`No diaper has been logged for ${viewingToday ? "today" : "this day"}.`);
   if (!diapers.some((diaper) => diaper.diaperType === "dirty" || diaper.diaperType === "mixed")) {
-    missing.push("No dirty diaper has been logged yet today.");
+    missing.push(`No dirty diaper has been logged for ${viewingToday ? "today" : "this day"}.`);
   }
 
   const lastFeedLine = lastFeed
@@ -354,7 +469,7 @@ function buildHandoff(events: BabyEvent[], settings: BabySettings): HandoffSumma
 
   return {
     generatedAt: new Date().toISOString(),
-    overview: `Today so far: ${feedCount} feed${feedCount === 1 ? "" : "s"}, ${diapers.length} diaper${diapers.length === 1 ? "" : "s"}, and ${naps.length} nap${naps.length === 1 ? "" : "s"} totaling ${formatDuration(napTotal)}.`,
+    overview: `${dayPhrase}: ${feedCount} feed${feedCount === 1 ? "" : "s"}, ${diapers.length} diaper${diapers.length === 1 ? "" : "s"}, and ${naps.length} nap${naps.length === 1 ? "" : "s"} totaling ${formatDuration(napTotal)}.`,
     lastFeed: lastFeedLine,
     lastNap: lastNapLine,
     lastDiaper: lastDiaperLine,
@@ -383,7 +498,7 @@ export default function Home() {
   const [events, setEvents] = useState<BabyEvent[]>([]);
   const [settings, setSettings] = useState<BabySettings>(defaultSettings);
   const [activeNap, setActiveNap] = useState<ActiveNap | null>(null);
-  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [formMode, setFormMode] = useState<FormMode>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [timeValue, setTimeValue] = useState(toInputValue(new Date()));
@@ -407,12 +522,6 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    setCurrentDate(new Date());
-    const timer = window.setInterval(() => setCurrentDate(new Date()), 60000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     window.localStorage.setItem(eventStorageKey, JSON.stringify(events));
   }, [events]);
 
@@ -428,39 +537,43 @@ export default function Home() {
     }
   }, [activeNap]);
 
-  const todayEvents = useMemo(
+  const selectedDayEvents = useMemo(
     () =>
       events
-        .filter((event) => isToday(eventDate(event)))
+        .filter((event) => isSameDay(eventDate(event), selectedDate))
         .sort((a, b) => new Date(eventStartDate(a)).getTime() - new Date(eventStartDate(b)).getTime()),
-    [events]
+    [events, selectedDate]
   );
 
-  const lastFeed = latestEvent(todayEvents, "feeding");
-  const lastNap = latestEvent(todayEvents, "nap");
-  const lastDiaper = latestEvent(todayEvents, "diaper");
-  const napTotal = todayEvents
+  const selectedDateIsToday = isDateToday(selectedDate);
+  const selectedDateLabel = selectedDateIsToday ? "Today" : formatShortDate(selectedDate);
+  const lastFeed = latestEvent(selectedDayEvents, "feeding");
+  const lastNap = latestEvent(selectedDayEvents, "nap");
+  const lastDiaper = latestEvent(selectedDayEvents, "diaper");
+  const napTotal = selectedDayEvents
     .filter((event): event is Extract<BabyEvent, { type: "nap" }> => event.type === "nap")
     .reduce((total, event) => total + event.durationMinutes, 0);
-  const feedCount = todayEvents.filter((event) => event.type === "feeding").length;
-  const diaperCount = todayEvents.filter((event) => event.type === "diaper").length;
-  const napCount = todayEvents.filter((event) => event.type === "nap").length;
-  const ouncesToday = bottleTotal(todayEvents);
-  const prediction = buildPrediction(todayEvents, settings.babyAgeMonths);
-  const insights = buildInsights(todayEvents, settings.babyAgeMonths);
+  const feedCount = selectedDayEvents.filter((event) => event.type === "feeding").length;
+  const diaperCount = selectedDayEvents.filter((event) => event.type === "diaper").length;
+  const napCount = selectedDayEvents.filter((event) => event.type === "nap").length;
+  const ouncesToday = bottleTotal(selectedDayEvents);
+  const prediction = buildPrediction(selectedDayEvents, settings.babyAgeMonths);
+  const insights = buildInsights(selectedDayEvents, settings.babyAgeMonths, selectedDate);
   const maxCount = Math.max(feedCount, diaperCount, napCount, 1);
   const maxNapDuration = Math.max(
-    ...todayEvents.filter((event): event is Extract<BabyEvent, { type: "nap" }> => event.type === "nap").map((event) => event.durationMinutes),
+    ...selectedDayEvents.filter((event): event is Extract<BabyEvent, { type: "nap" }> => event.type === "nap").map((event) => event.durationMinutes),
     60
   );
 
   function openForm(mode: Exclude<FormMode, null>) {
-    const now = new Date();
+    const currentTime = new Date();
+    const now = new Date(selectedDate);
+    now.setHours(currentTime.getHours(), currentTime.getMinutes(), 0, 0);
     setEditingEventId(null);
     setFormMode(mode);
     setTimeValue(toInputValue(now));
     setNapEndValue(toInputValue(now));
-    setNapStartValue(activeNap ? toInputValue(new Date(activeNap.startTime)) : toInputValue(new Date(Date.now() - 35 * 60000)));
+    setNapStartValue(activeNap ? toInputValue(new Date(activeNap.startTime)) : toInputValue(new Date(now.getTime() - 35 * 60000)));
     setFeedingType("bottle");
     setAmountOz("");
     setDiaperType("wet");
@@ -557,6 +670,7 @@ export default function Home() {
   function loadSampleDay() {
     setEvents(sampleDay());
     setSettings({ babyName: "Baby", babyAgeMonths: 5 });
+    setSelectedDate(new Date());
     setActiveNap(null);
     setHandoff(null);
     resetForm();
@@ -588,22 +702,34 @@ export default function Home() {
     window.setTimeout(() => setCopied(false), 1800);
   }
 
+  function changeSelectedDate(nextDate: Date) {
+    setSelectedDate(nextDate);
+    setHandoff(null);
+    resetForm();
+  }
+
+  function shiftSelectedDate(days: number) {
+    const nextDate = new Date(selectedDate);
+    nextDate.setDate(nextDate.getDate() + days);
+    changeSelectedDate(nextDate);
+  }
+
   const metrics = [
     {
       label: "Last feeding",
-      value: lastFeed ? formatSince(lastFeed.timestamp) : "None today"
+      value: lastFeed ? (selectedDateIsToday ? formatSince(lastFeed.timestamp) : formatTime(lastFeed.timestamp)) : "None"
     },
     {
       label: "Last nap ended",
-      value: lastNap ? formatSince(lastNap.endTime) : "None today"
+      value: lastNap ? (selectedDateIsToday ? formatSince(lastNap.endTime) : formatTime(lastNap.endTime)) : "None"
     },
     {
       label: "Last diaper",
-      value: lastDiaper ? formatSince(lastDiaper.timestamp) : "None today"
+      value: lastDiaper ? (selectedDateIsToday ? formatSince(lastDiaper.timestamp) : formatTime(lastDiaper.timestamp)) : "None"
     },
     { label: "Nap total", value: formatDuration(napTotal) },
-    { label: "Feeds today", value: String(feedCount) },
-    { label: "Diapers today", value: String(diaperCount) }
+    { label: "Feeds", value: String(feedCount) },
+    { label: "Diapers", value: String(diaperCount) }
   ];
   const formTitle = editingEventId
     ? "Edit logged event"
@@ -622,9 +748,28 @@ export default function Home() {
           <h1>BabyBrief</h1>
           <p>Simple care tracking and handoff summaries for new parents</p>
         </div>
-        <div className="today-pill" aria-label="Current date">
-          <CalendarDays size={18} />
-          {currentDate ? formatDate(currentDate) : "Today"}
+        <div className="date-controls" aria-label="Selected care date">
+          <button className="date-step-button" type="button" aria-label="Previous day" onClick={() => shiftSelectedDate(-1)}>
+            <ChevronLeft size={17} />
+          </button>
+          <label className="date-picker-label">
+            <CalendarDays size={18} />
+            <span>{selectedDateIsToday ? "Today" : formatShortDate(selectedDate)}</span>
+            <input
+              aria-label="Select care date"
+              type="date"
+              value={toDateInputValue(selectedDate)}
+              onChange={(event) => changeSelectedDate(fromDateInputValue(event.target.value))}
+            />
+          </label>
+          <button className="date-step-button" type="button" aria-label="Next day" onClick={() => shiftSelectedDate(1)}>
+            <ChevronRight size={17} />
+          </button>
+          {!selectedDateIsToday ? (
+            <button className="today-link-button" type="button" onClick={() => changeSelectedDate(new Date())}>
+              Today
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -798,7 +943,7 @@ export default function Home() {
             </div>
             <div className="form-actions" style={{ justifyContent: "flex-start", marginTop: 0 }}>
               <button className="secondary-button" type="button" onClick={loadSampleDay}>
-                Load sample day
+                Load sample days
               </button>
               <button className="ghost-button" type="button" onClick={clearData}>
                 Clear all demo data
@@ -852,14 +997,14 @@ export default function Home() {
               <div>
                 <h2 className="panel-title">
                   <Clock3 size={19} />
-                  Today Timeline
+                  {selectedDateLabel} Timeline
                 </h2>
-                <p className="section-kicker">{todayEvents.length} logged event{todayEvents.length === 1 ? "" : "s"}</p>
+                <p className="section-kicker">{selectedDayEvents.length} logged event{selectedDayEvents.length === 1 ? "" : "s"}</p>
               </div>
             </div>
             <div className="timeline">
-              {todayEvents.length ? (
-                todayEvents.map((event) => (
+              {selectedDayEvents.length ? (
+                selectedDayEvents.map((event) => (
                   <article className="timeline-row" key={event.id}>
                     <div className="timeline-icon">
                       {event.type === "feeding" ? <Utensils size={18} /> : null}
@@ -884,7 +1029,7 @@ export default function Home() {
                   </article>
                 ))
               ) : (
-                <div className="empty-state">No events logged today.</div>
+                <div className="empty-state">No events logged for {selectedDateIsToday ? "today" : formatDate(selectedDate)}.</div>
               )}
             </div>
           </div>
@@ -894,7 +1039,7 @@ export default function Home() {
               <div>
                 <h2 className="panel-title">
                   <BarChart3 size={19} />
-                  Today At A Glance
+                  {selectedDateLabel} At A Glance
                 </h2>
               </div>
             </div>
@@ -918,8 +1063,8 @@ export default function Home() {
               <div>
                 <p className="section-kicker">Nap duration chart</p>
                 <div className="nap-bars">
-                  {todayEvents.filter((event) => event.type === "nap").length ? (
-                    todayEvents
+                  {selectedDayEvents.filter((event) => event.type === "nap").length ? (
+                    selectedDayEvents
                       .filter((event): event is Extract<BabyEvent, { type: "nap" }> => event.type === "nap")
                       .map((nap) => (
                         <div className="nap-bar" key={nap.id}>
@@ -944,7 +1089,7 @@ export default function Home() {
 
               <div className="wake-guidance" style={{ marginTop: 0 }}>
                 <Utensils size={18} />
-                <span>Bottle total today: {ouncesToday ? `${ouncesToday} oz` : "none entered"}.</span>
+                <span>Bottle total {selectedDateIsToday ? "today" : "for this day"}: {ouncesToday ? `${ouncesToday} oz` : "none entered"}.</span>
               </div>
             </div>
           </div>
@@ -956,7 +1101,7 @@ export default function Home() {
                   <Clipboard size={19} />
                   Caregiver Handoff
                 </h2>
-                <p className="section-kicker">Review the essentials, then copy or share the short message.</p>
+                <p className="section-kicker">Review the essentials, then copy a handoff message.</p>
               </div>
             </div>
             <div className="handoff-steps">
@@ -974,7 +1119,7 @@ export default function Home() {
               </div>
             </div>
             <div className="form-actions handoff-actions">
-              <button className="copy-button" type="button" onClick={() => setHandoff(buildHandoff(events, settings))}>
+              <button className="copy-button" type="button" onClick={() => setHandoff(buildHandoff(events, settings, selectedDate))}>
                 <Sparkles size={17} />
                 {handoff ? "Refresh handoff" : "Generate handoff"}
               </button>
@@ -987,7 +1132,7 @@ export default function Home() {
               <div className="handoff-panel">
                 <div className="handoff-review">
                   <div>
-                    <span>Today</span>
+                    <span>{selectedDateIsToday ? "Today" : formatShortDate(selectedDate)}</span>
                     <strong>{handoff.overview}</strong>
                   </div>
                   <div>
