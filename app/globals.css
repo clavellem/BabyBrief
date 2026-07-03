@@ -3,18 +3,19 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
-  --bg: #f7f2ea;
-  --panel: rgba(255, 252, 247, 0.92);
-  --panel-strong: #fffaf2;
-  --ink: #232725;
-  --muted: #6d746f;
-  --line: #e3dbce;
-  --sage: #87a68a;
-  --sage-dark: #527c58;
-  --peach: #e9a178;
-  --sky: #8aa9c4;
-  --rose: #d98282;
+  color-scheme: dark;
+  --bg: #0b1110;
+  --panel: rgba(20, 28, 27, 0.84);
+  --panel-strong: #182321;
+  --ink: #f2f6ef;
+  --muted: #9aa8a1;
+  --line: rgba(207, 221, 211, 0.14);
+  --sage: #93d7a5;
+  --sage-dark: #75c98d;
+  --peach: #f1a47f;
+  --sky: #8fc8e8;
+  --rose: #ee8f97;
+  --shadow: 0 18px 70px rgba(0, 0, 0, 0.34);
 }
 
 * {
@@ -25,8 +26,9 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 12% 10%, rgba(135, 166, 138, 0.2), transparent 28%),
-    linear-gradient(135deg, #f7f2ea 0%, #eef3ed 47%, #f8ede5 100%);
+    radial-gradient(circle at 15% 8%, rgba(117, 201, 141, 0.16), transparent 30%),
+    radial-gradient(circle at 86% 14%, rgba(143, 200, 232, 0.14), transparent 32%),
+    linear-gradient(145deg, #080d0c 0%, #101817 45%, #161412 100%);
   color: var(--ink);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -43,6 +45,31 @@ textarea {
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+  transform: none;
+}
+
+::selection {
+  background: rgba(117, 201, 141, 0.34);
+  color: #fbfff8;
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080d0c;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(207, 221, 211, 0.18);
+  border: 3px solid #080d0c;
+  border-radius: 999px;
 }
 
 .shell {
@@ -64,6 +91,7 @@ button {
   font-size: clamp(2.2rem, 4vw, 4.25rem);
   line-height: 0.95;
   letter-spacing: 0;
+  color: #fbfff8;
 }
 
 .brand-lockup p,
@@ -76,6 +104,7 @@ button {
   margin: 10px 0 0;
   max-width: 560px;
   font-size: 1rem;
+  color: #b7c5be;
 }
 
 .today-pill {
@@ -84,11 +113,12 @@ button {
   gap: 8px;
   min-height: 40px;
   padding: 9px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(207, 221, 211, 0.16);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.64);
-  color: #4f5852;
+  background: rgba(20, 28, 27, 0.72);
+  color: #cbd8d1;
   white-space: nowrap;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
 }
 
 .dashboard-grid {
@@ -107,14 +137,21 @@ button {
 .panel,
 .metric-card,
 .timeline-row {
-  border: 1px solid rgba(227, 219, 206, 0.86);
+  border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
-  box-shadow: 0 18px 50px rgba(35, 39, 37, 0.08);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
 }
 
 .panel {
   padding: 16px;
+}
+
+.panel:hover,
+.metric-card:hover,
+.timeline-row:hover {
+  border-color: rgba(207, 221, 211, 0.22);
 }
 
 .panel-header {
@@ -153,7 +190,7 @@ button {
 label {
   display: grid;
   gap: 6px;
-  color: #4f5852;
+  color: #c2d0c8;
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -162,12 +199,17 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(207, 221, 211, 0.16);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(7, 12, 11, 0.68);
   color: var(--ink);
   outline: none;
   padding: 10px 11px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6d7b74;
 }
 
 textarea {
@@ -179,7 +221,7 @@ input:focus,
 select:focus,
 textarea:focus {
   border-color: var(--sage);
-  box-shadow: 0 0 0 3px rgba(135, 166, 138, 0.2);
+  box-shadow: 0 0 0 3px rgba(117, 201, 141, 0.18);
 }
 
 .wake-guidance {
@@ -189,8 +231,9 @@ textarea:focus {
   margin-top: 12px;
   padding: 11px;
   border-radius: 8px;
-  background: rgba(138, 169, 196, 0.15);
-  color: #3f5668;
+  background: rgba(143, 200, 232, 0.1);
+  border: 1px solid rgba(143, 200, 232, 0.12);
+  color: #bdd6e5;
   font-size: 0.88rem;
 }
 
@@ -220,8 +263,8 @@ textarea:focus {
 }
 
 .action-button {
-  color: #fffdf8;
-  box-shadow: 0 12px 26px rgba(82, 124, 88, 0.23);
+  color: #07100d;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.28);
 }
 
 .action-button:hover,
@@ -231,41 +274,46 @@ textarea:focus {
   transform: translateY(-1px);
 }
 
+button:disabled:hover {
+  transform: none;
+}
+
 .action-feed {
-  background: #527c58;
+  background: linear-gradient(135deg, #7ad394, #4fb86e);
 }
 
 .action-nap {
-  background: #4e7391;
+  background: linear-gradient(135deg, #91d2ee, #4f9bc7);
 }
 
 .action-diaper {
-  background: #c67653;
+  background: linear-gradient(135deg, #f3a47d, #df795d);
 }
 
 .secondary-button {
-  border: 1px solid var(--line);
-  background: #fffaf2;
+  border: 1px solid rgba(207, 221, 211, 0.16);
+  background: rgba(242, 246, 239, 0.08);
   color: var(--ink);
 }
 
 .ghost-button {
-  border: 1px solid rgba(227, 219, 206, 0.8);
+  border: 1px solid rgba(207, 221, 211, 0.14);
   background: transparent;
-  color: #4f5852;
+  color: #c2d0c8;
 }
 
 .copy-button {
-  background: var(--ink);
-  color: #fffaf2;
+  background: #eef8ee;
+  color: #07100d;
+  box-shadow: 0 14px 34px rgba(238, 248, 238, 0.12);
 }
 
 .form-panel {
   margin-top: 12px;
   padding: 12px;
   border-radius: 8px;
-  background: rgba(255, 250, 242, 0.74);
-  border: 1px dashed rgba(135, 166, 138, 0.7);
+  background: rgba(8, 13, 12, 0.44);
+  border: 1px dashed rgba(117, 201, 141, 0.44);
 }
 
 .form-panel-header {
@@ -322,6 +370,7 @@ textarea:focus {
   margin-top: 8px;
   font-size: clamp(1.18rem, 2vw, 1.7rem);
   letter-spacing: 0;
+  color: #fbfff8;
 }
 
 .prediction {
@@ -332,14 +381,15 @@ textarea:focus {
 .prediction-window {
   padding: 16px;
   border-radius: 8px;
-  background: linear-gradient(135deg, rgba(82, 124, 88, 0.13), rgba(233, 161, 120, 0.15));
-  border: 1px solid rgba(135, 166, 138, 0.35);
+  background: linear-gradient(135deg, rgba(117, 201, 141, 0.13), rgba(143, 200, 232, 0.11));
+  border: 1px solid rgba(117, 201, 141, 0.22);
 }
 
 .prediction-window strong {
   display: block;
   margin-top: 5px;
   font-size: clamp(1.25rem, 3vw, 2rem);
+  color: #fbfff8;
 }
 
 .insights {
@@ -351,7 +401,7 @@ textarea:focus {
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  color: #4f5852;
+  color: #c2d0c8;
   font-size: 0.9rem;
 }
 
@@ -375,13 +425,14 @@ textarea:focus {
   border-radius: 8px;
   display: grid;
   place-items: center;
-  background: rgba(135, 166, 138, 0.16);
+  background: rgba(117, 201, 141, 0.12);
   color: var(--sage-dark);
 }
 
 .timeline-row h3 {
   margin: 0;
   font-size: 0.96rem;
+  color: #f2f6ef;
 }
 
 .timeline-row p {
@@ -395,10 +446,10 @@ textarea:focus {
   height: 36px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(207, 221, 211, 0.14);
   border-radius: 8px;
-  background: #fffaf2;
-  color: #8d5151;
+  background: rgba(242, 246, 239, 0.07);
+  color: #f0a0a5;
 }
 
 .timeline-actions {
@@ -407,7 +458,7 @@ textarea:focus {
 }
 
 .edit-icon {
-  color: #4f6f86;
+  color: var(--sky);
 }
 
 .charts-grid {
@@ -425,14 +476,14 @@ textarea:focus {
   grid-template-columns: 70px 1fr 34px;
   gap: 10px;
   align-items: center;
-  color: #4f5852;
+  color: #c2d0c8;
   font-size: 0.88rem;
 }
 
 .bar-track {
   height: 12px;
   border-radius: 999px;
-  background: rgba(35, 39, 37, 0.08);
+  background: rgba(242, 246, 239, 0.08);
   overflow: hidden;
 }
 
@@ -440,6 +491,7 @@ textarea:focus {
   height: 100%;
   min-width: 4px;
   border-radius: inherit;
+  box-shadow: 0 0 18px rgba(117, 201, 141, 0.16);
 }
 
 .nap-bars {
@@ -453,7 +505,7 @@ textarea:focus {
   gap: 10px;
   align-items: center;
   font-size: 0.84rem;
-  color: #4f5852;
+  color: #c2d0c8;
 }
 
 .handoff-review span,
@@ -489,8 +541,8 @@ textarea:focus {
   min-height: 38px;
   padding: 8px;
   border-radius: 8px;
-  background: rgba(135, 166, 138, 0.12);
-  color: #4f5852;
+  background: rgba(117, 201, 141, 0.1);
+  color: #c2d0c8;
   font-size: 0.8rem;
   font-weight: 800;
 }
@@ -515,9 +567,9 @@ textarea:focus {
 .handoff-review > div,
 .missing-list {
   padding: 12px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(207, 221, 211, 0.14);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(7, 12, 11, 0.38);
 }
 
 .handoff-review strong {
@@ -544,6 +596,7 @@ textarea:focus {
   border-radius: 8px;
   padding: 18px;
   color: var(--muted);
+  background: rgba(7, 12, 11, 0.3);
   text-align: center;
 }
 

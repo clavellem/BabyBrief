@@ -833,7 +833,6 @@ export default function Home() {
                   ? `${formatTime(prediction.lowerIso)}-${formatTime(prediction.upperIso)}`
                   : "Waiting for nap log"}
               </strong>
-              <p>{prediction.message}</p>
             </div>
             <div className="insights">
               {insights.map((insight) => (
