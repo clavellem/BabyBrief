@@ -5,13 +5,17 @@ import {
   BarChart3,
   Bed,
   CalendarDays,
+  CheckCircle2,
   Clipboard,
   Clock3,
   Copy,
   Droplets,
+  MessageSquareText,
   Moon,
+  Pencil,
   Plus,
   RotateCcw,
+  Share2,
   Sparkles,
   Trash2,
   Utensils,
@@ -58,6 +62,17 @@ type ActiveNap = {
 };
 
 type FormMode = "feeding" | "diaper" | "nap-start" | "nap-end" | null;
+
+type HandoffSummary = {
+  generatedAt: string;
+  overview: string;
+  lastFeed: string;
+  lastNap: string;
+  lastDiaper: string;
+  nextNap: string;
+  missing: string[];
+  copyable: string;
+};
 
 const eventStorageKey = "babybrief.events";
 const settingsStorageKey = "babybrief.settings";
@@ -292,7 +307,7 @@ function buildInsights(events: BabyEvent[], ageMonths: number) {
   return insights.length ? insights : ["Today is lightly logged so far."];
 }
 
-function buildHandoff(events: BabyEvent[], settings: BabySettings) {
+function buildHandoff(events: BabyEvent[], settings: BabySettings): HandoffSummary {
   const todayEvents = events.filter((event) => isToday(eventDate(event)));
   const feedCount = todayEvents.filter((event) => event.type === "feeding").length;
   const diapers = todayEvents.filter((event): event is Extract<BabyEvent, { type: "diaper" }> => event.type === "diaper");
@@ -338,18 +353,31 @@ function buildHandoff(events: BabyEvent[], settings: BabySettings) {
     ? `${copyableParts.join(", ")}.`
     : "The day has not been logged yet.";
 
-  return `Today so far: ${feedCount} feed${feedCount === 1 ? "" : "s"}, ${diapers.length} diaper${diapers.length === 1 ? "" : "s"}, and ${naps.length} nap${naps.length === 1 ? "" : "s"} totaling ${formatDuration(napTotal)}.
+  return {
+    generatedAt: new Date().toISOString(),
+    overview: `Today so far: ${feedCount} feed${feedCount === 1 ? "" : "s"}, ${diapers.length} diaper${diapers.length === 1 ? "" : "s"}, and ${naps.length} nap${naps.length === 1 ? "" : "s"} totaling ${formatDuration(napTotal)}.`,
+    lastFeed: lastFeedLine,
+    lastNap: lastNapLine,
+    lastDiaper: lastDiaperLine,
+    nextNap: predictionLine,
+    missing: missing.length ? missing : ["No obvious gaps from today's logs."],
+    copyable
+  };
+}
 
-${lastFeedLine}
-${lastNapLine}
-${lastDiaperLine}
-${predictionLine}
+function formatHandoffForClipboard(handoff: HandoffSummary) {
+  return `${handoff.overview}
+
+${handoff.lastFeed}
+${handoff.lastNap}
+${handoff.lastDiaper}
+${handoff.nextNap}
 
 Missing context:
-${missing.length ? missing.map((item) => `- ${item}`).join("\n") : "- No obvious gaps from today's logs."}
+${handoff.missing.map((item) => `- ${item}`).join("\n")}
 
 Copyable handoff:
-"${copyable}"`;
+"${handoff.copyable}"`;
 }
 
 export default function Home() {
@@ -358,6 +386,7 @@ export default function Home() {
   const [activeNap, setActiveNap] = useState<ActiveNap | null>(null);
   const [currentDate, setCurrentDate] = useState<Date | null>(null);
   const [formMode, setFormMode] = useState<FormMode>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [timeValue, setTimeValue] = useState(toInputValue(new Date()));
   const [napStartValue, setNapStartValue] = useState(toInputValue(new Date(Date.now() - 35 * 60000)));
   const [napEndValue, setNapEndValue] = useState(toInputValue(new Date()));
@@ -365,8 +394,9 @@ export default function Home() {
   const [amountOz, setAmountOz] = useState("");
   const [diaperType, setDiaperType] = useState<DiaperType>("wet");
   const [note, setNote] = useState("");
-  const [handoff, setHandoff] = useState("");
+  const [handoff, setHandoff] = useState<HandoffSummary | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
   useEffect(() => {
     const storedEvents = window.localStorage.getItem(eventStorageKey);
@@ -428,6 +458,7 @@ export default function Home() {
 
   function openForm(mode: Exclude<FormMode, null>) {
     const now = new Date();
+    setEditingEventId(null);
     setFormMode(mode);
     setTimeValue(toInputValue(now));
     setNapEndValue(toInputValue(now));
@@ -437,24 +468,54 @@ export default function Home() {
     setDiaperType("wet");
     setNote(activeNap && mode === "nap-end" ? activeNap.note ?? "" : "");
     setCopied(false);
+    setShared(false);
   }
 
   function resetForm() {
     setFormMode(null);
+    setEditingEventId(null);
     setNote("");
   }
 
   function addEvent(event: BabyEvent) {
     setEvents((current) => [...current.filter((item) => item.id !== event.id), event]);
-    setHandoff("");
+    setHandoff(null);
     resetForm();
+  }
+
+  function editEvent(event: BabyEvent) {
+    setEditingEventId(event.id);
+    setCopied(false);
+    setShared(false);
+
+    if (event.type === "feeding") {
+      setFormMode("feeding");
+      setTimeValue(toInputValue(new Date(event.timestamp)));
+      setFeedingType(event.feedingType);
+      setAmountOz(event.amountOz ? String(event.amountOz) : "");
+      setNote(event.note ?? "");
+    }
+
+    if (event.type === "diaper") {
+      setFormMode("diaper");
+      setTimeValue(toInputValue(new Date(event.timestamp)));
+      setDiaperType(event.diaperType);
+      setNote(event.note ?? "");
+    }
+
+    if (event.type === "nap") {
+      setFormMode("nap-end");
+      setNapStartValue(toInputValue(new Date(event.startTime)));
+      setNapEndValue(toInputValue(new Date(event.endTime)));
+      setNote(event.note ?? "");
+    }
   }
 
   function submitForm() {
     if (formMode === "feeding") {
       const amount = Number.parseFloat(amountOz);
       addEvent({
-        id: makeId(),
+        id: editingEventId ?? makeId(),
         type: "feeding",
         timestamp: fromInputValue(timeValue),
         feedingType,
@@ -465,7 +526,7 @@ export default function Home() {
 
     if (formMode === "diaper") {
       addEvent({
-        id: makeId(),
+        id: editingEventId ?? makeId(),
         type: "diaper",
         timestamp: fromInputValue(timeValue),
         diaperType,
@@ -478,6 +539,7 @@ export default function Home() {
         startTime: fromInputValue(timeValue),
         note: note.trim() || undefined
       });
+      setHandoff(null);
       resetForm();
     }
 
@@ -485,14 +547,14 @@ export default function Home() {
       const startTime = fromInputValue(napStartValue);
       const endTime = fromInputValue(napEndValue);
       addEvent({
-        id: makeId(),
+        id: editingEventId ?? makeId(),
         type: "nap",
         startTime,
         endTime,
         durationMinutes: minutesBetween(startTime, endTime),
         note: note.trim() || undefined
       });
-      setActiveNap(null);
+      if (!editingEventId) setActiveNap(null);
     }
   }
 
@@ -500,27 +562,47 @@ export default function Home() {
     setEvents(sampleDay());
     setSettings({ babyName: "Baby", babyAgeMonths: 5 });
     setActiveNap(null);
-    setHandoff("");
+    setHandoff(null);
     resetForm();
   }
 
   function clearData() {
     setEvents([]);
     setActiveNap(null);
-    setHandoff("");
+    setHandoff(null);
     resetForm();
   }
 
   function deleteEvent(id: string) {
     setEvents((current) => current.filter((event) => event.id !== id));
-    setHandoff("");
+    setHandoff(null);
   }
 
   async function copyHandoff() {
     if (!handoff) return;
-    await navigator.clipboard.writeText(handoff);
+    await navigator.clipboard.writeText(handoff.copyable);
     setCopied(true);
+    setShared(false);
     window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function copyFullHandoff() {
+    if (!handoff) return;
+    await navigator.clipboard.writeText(formatHandoffForClipboard(handoff));
+    setCopied(true);
+    setShared(false);
+    window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function shareHandoff() {
+    if (!handoff || !navigator.share) return;
+    await navigator.share({
+      title: `${settings.babyName} handoff`,
+      text: handoff.copyable
+    });
+    setShared(true);
+    setCopied(false);
+    window.setTimeout(() => setShared(false), 1800);
   }
 
   const metrics = [
@@ -540,6 +622,21 @@ export default function Home() {
     { label: "Feeds today", value: String(feedCount) },
     { label: "Diapers today", value: String(diaperCount) }
   ];
+  const rightNowSummary = [
+    lastFeed ? `Fed ${formatSince(lastFeed.timestamp)}` : "No feed today",
+    lastNap ? `Nap ended ${formatSince(lastNap.endTime)}` : "No completed nap",
+    lastDiaper ? `Diaper ${formatSince(lastDiaper.timestamp)}` : "No diaper today"
+  ].join(" | ");
+  const formTitle = editingEventId
+    ? "Edit logged event"
+    : formMode === "nap-start"
+      ? "Start a nap"
+      : formMode === "nap-end"
+        ? "End a nap"
+        : formMode === "feeding"
+          ? "Add feeding"
+          : "Add diaper";
+  const canShare = typeof navigator !== "undefined" && Boolean(navigator.share);
 
   return (
     <main className="shell">
@@ -630,6 +727,10 @@ export default function Home() {
 
             {formMode ? (
               <div className="form-panel">
+                <div className="form-panel-header">
+                  <strong>{formTitle}</strong>
+                  {editingEventId ? <span>Changes update the timeline immediately.</span> : null}
+                </div>
                 <div className="form-grid">
                   {formMode === "feeding" ? (
                     <>
@@ -701,8 +802,8 @@ export default function Home() {
                     Cancel
                   </button>
                   <button className="secondary-button" onClick={submitForm} type="button">
-                    <Plus size={17} />
-                    Save
+                    {editingEventId ? <CheckCircle2 size={17} /> : <Plus size={17} />}
+                    {editingEventId ? "Save changes" : "Save"}
                   </button>
                 </div>
               </div>
@@ -730,6 +831,18 @@ export default function Home() {
         </section>
 
         <section className="right-stack">
+          <div className="right-now-card">
+            <div>
+              <span className="section-kicker">Right now</span>
+              <strong>{rightNowSummary}</strong>
+            </div>
+            <p>
+              {prediction.lowerIso && prediction.upperIso
+                ? `Next nap window: ${formatTime(prediction.lowerIso)}-${formatTime(prediction.upperIso)}`
+                : "Log a completed nap to estimate the next nap window."}
+            </p>
+          </div>
+
           <div className="metrics-grid" aria-label="Current status">
             {metrics.map((metric) => (
               <article className="metric-card" key={metric.label}>
@@ -796,9 +909,14 @@ export default function Home() {
                         {event.note ? ` - ${event.note}` : ""}
                       </p>
                     </div>
-                    <button className="icon-button" type="button" aria-label="Delete event" onClick={() => deleteEvent(event.id)}>
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="timeline-actions">
+                      <button className="icon-button edit-icon" type="button" aria-label="Edit event" onClick={() => editEvent(event)}>
+                        <Pencil size={16} />
+                      </button>
+                      <button className="icon-button" type="button" aria-label="Delete event" onClick={() => deleteEvent(event.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </article>
                 ))
               ) : (
@@ -874,19 +992,84 @@ export default function Home() {
                   <Clipboard size={19} />
                   Caregiver Handoff
                 </h2>
+                <p className="section-kicker">Review the essentials, then copy or share the short message.</p>
               </div>
             </div>
-            <div className="form-actions" style={{ justifyContent: "flex-start", marginTop: 0 }}>
+            <div className="handoff-steps">
+              <div>
+                <CheckCircle2 size={16} />
+                <span>Check recent care</span>
+              </div>
+              <div>
+                <Clock3 size={16} />
+                <span>Confirm next nap</span>
+              </div>
+              <div>
+                <MessageSquareText size={16} />
+                <span>Send handoff</span>
+              </div>
+            </div>
+            <div className="form-actions handoff-actions">
               <button className="copy-button" type="button" onClick={() => setHandoff(buildHandoff(events, settings))}>
                 <Sparkles size={17} />
-                Generate Handoff Summary
+                {handoff ? "Refresh handoff" : "Generate handoff"}
               </button>
               <button className="secondary-button" type="button" onClick={copyHandoff} disabled={!handoff}>
                 <Copy size={17} />
-                {copied ? "Copied" : "Copy"}
+                {copied ? "Copied" : "Copy message"}
               </button>
+              {canShare ? (
+                <button className="secondary-button" type="button" onClick={shareHandoff} disabled={!handoff}>
+                  <Share2 size={17} />
+                  {shared ? "Shared" : "Share"}
+                </button>
+              ) : null}
             </div>
-            {handoff ? <div className="summary-box">{handoff}</div> : <div className="empty-state">Generate a summary when it is handoff time.</div>}
+            {handoff ? (
+              <div className="handoff-panel">
+                <div className="handoff-review">
+                  <div>
+                    <span>Today</span>
+                    <strong>{handoff.overview}</strong>
+                  </div>
+                  <div>
+                    <span>Last feed</span>
+                    <p>{handoff.lastFeed}</p>
+                  </div>
+                  <div>
+                    <span>Last nap</span>
+                    <p>{handoff.lastNap}</p>
+                  </div>
+                  <div>
+                    <span>Last diaper</span>
+                    <p>{handoff.lastDiaper}</p>
+                  </div>
+                  <div>
+                    <span>Next nap</span>
+                    <p>{handoff.nextNap}</p>
+                  </div>
+                </div>
+                <div className="missing-list">
+                  <span>Missing context</span>
+                  {handoff.missing.map((item) => (
+                    <p key={item}>{item}</p>
+                  ))}
+                </div>
+                <div className="summary-box">
+                  <span>Copyable message</span>
+                  <p>{handoff.copyable}</p>
+                </div>
+                <button className="ghost-button full-width-button" type="button" onClick={copyFullHandoff}>
+                  <Clipboard size={17} />
+                  Copy full summary
+                </button>
+              </div>
+            ) : (
+              <div className="empty-state handoff-empty">
+                <strong>Ready when the next caregiver is.</strong>
+                <span>Generate a handoff to gather the latest feed, nap, diaper, and next-nap estimate in one place.</span>
+              </div>
+            )}
           </div>
         </section>
       </div>

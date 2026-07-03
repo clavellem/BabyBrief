@@ -269,6 +269,23 @@ textarea:focus {
   border: 1px dashed rgba(135, 166, 138, 0.7);
 }
 
+.form-panel-header {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.form-panel-header strong {
+  font-size: 0.95rem;
+}
+
+.form-panel-header span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
 .full-span {
   grid-column: 1 / -1;
 }
@@ -285,6 +302,29 @@ textarea:focus {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
+}
+
+.right-now-card {
+  display: grid;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid rgba(135, 166, 138, 0.42);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(255, 250, 242, 0.94), rgba(238, 243, 237, 0.92));
+  box-shadow: 0 18px 50px rgba(35, 39, 37, 0.08);
+}
+
+.right-now-card strong {
+  display: block;
+  margin-top: 5px;
+  font-size: clamp(1rem, 2vw, 1.22rem);
+  line-height: 1.35;
+}
+
+.right-now-card p {
+  margin: 0;
+  color: #4f5852;
+  font-size: 0.92rem;
 }
 
 .metric-card {
@@ -385,6 +425,15 @@ textarea:focus {
   color: #8d5151;
 }
 
+.timeline-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.edit-icon {
+  color: #4f6f86;
+}
+
 .charts-grid {
   display: grid;
   gap: 16px;
@@ -435,8 +484,92 @@ textarea:focus {
   padding: 14px;
   box-shadow: none;
   background: #fffaf2;
-  white-space: pre-line;
   line-height: 1.55;
+}
+
+.summary-box span,
+.handoff-review span,
+.missing-list span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.summary-box p,
+.handoff-review p,
+.missing-list p {
+  margin: 5px 0 0;
+}
+
+.handoff-actions {
+  justify-content: flex-start;
+  margin-top: 0;
+}
+
+.handoff-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.handoff-steps div {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(135, 166, 138, 0.12);
+  color: #4f5852;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.handoff-steps svg {
+  flex: 0 0 auto;
+  color: var(--sage-dark);
+}
+
+.handoff-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.handoff-review {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.handoff-review > div,
+.missing-list {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.handoff-review strong {
+  display: block;
+  margin-top: 5px;
+  line-height: 1.45;
+}
+
+.full-width-button {
+  width: 100%;
+}
+
+.handoff-empty {
+  display: grid;
+  gap: 5px;
+}
+
+.handoff-empty strong {
+  color: var(--ink);
 }
 
 .empty-state {
@@ -493,12 +626,27 @@ textarea:focus {
   }
 
   .timeline-row {
-    grid-template-columns: 36px 1fr auto;
+    grid-template-columns: 36px 1fr;
     padding: 10px;
+  }
+
+  .timeline-actions {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 
   .bar-row,
   .nap-bar {
     grid-template-columns: 60px 1fr 44px;
+  }
+
+  .form-panel-header,
+  .handoff-review,
+  .handoff-steps {
+    grid-template-columns: 1fr;
+  }
+
+  .form-panel-header {
+    display: grid;
   }
 }
