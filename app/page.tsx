@@ -78,6 +78,7 @@ type HandoffSummary = {
 const eventStorageKey = "babybrief.events";
 const settingsStorageKey = "babybrief.settings";
 const activeNapStorageKey = "babybrief.activeNap";
+const calendarWeekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const defaultSettings: BabySettings = {
   babyName: "Baby",
@@ -100,26 +101,6 @@ const diaperLabels: Record<DiaperType, string> = {
 function toInputValue(date: Date) {
   const offsetMs = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
-
-function toDateInputValue(date: Date) {
-  const offsetMs = date.getTimezoneOffset() * 60000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
-}
-
-function fromDateInputValue(value: string) {
-  if (!value) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-
-  const [year, month, day] = value.split("-").map(Number);
-  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
-  if (Number.isNaN(parsed.getTime())) return null;
-
-  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) {
-    return null;
-  }
-
-  return parsed;
 }
 
 function fromInputValue(value: string) {
@@ -166,6 +147,13 @@ function formatShortDate(date: Date) {
   }).format(date);
 }
 
+function formatMonthYear(date: Date) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "long",
+    year: "numeric"
+  }).format(date);
+}
+
 function formatDuration(minutes: number) {
   if (!Number.isFinite(minutes) || minutes <= 0) return "0 min";
   const hours = Math.floor(minutes / 60);
@@ -191,6 +179,44 @@ function isSameDay(iso: string, date: Date) {
 
 function isDateToday(date: Date) {
   return date.toDateString() === new Date().toDateString();
+}
+
+function normalizeCalendarDate(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0, 0);
+}
+
+function startOfMonth(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1, 12, 0, 0, 0);
+}
+
+function addMonths(date: Date, months: number) {
+  const nextDate = startOfMonth(date);
+  nextDate.setMonth(nextDate.getMonth() + months);
+  return nextDate;
+}
+
+function isSameCalendarDay(firstDate: Date, secondDate: Date) {
+  return firstDate.toDateString() === secondDate.toDateString();
+}
+
+function isAfterToday(date: Date) {
+  return normalizeCalendarDate(date).getTime() > normalizeCalendarDate(new Date()).getTime();
+}
+
+function buildCalendarDays(month: Date) {
+  const firstDay = startOfMonth(month);
+  const daysInMonth = new Date(firstDay.getFullYear(), firstDay.getMonth() + 1, 0).getDate();
+  const days: Array<Date | null> = Array.from({ length: firstDay.getDay() }, () => null);
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    days.push(new Date(firstDay.getFullYear(), firstDay.getMonth(), day, 12, 0, 0, 0));
+  }
+
+  while (days.length % 7 !== 0) {
+    days.push(null);
+  }
+
+  return days;
 }
 
 function eventDate(event: BabyEvent) {
@@ -510,6 +536,8 @@ export default function Home() {
   const [settings, setSettings] = useState<BabySettings>(defaultSettings);
   const [activeNap, setActiveNap] = useState<ActiveNap | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
   const [formMode, setFormMode] = useState<FormMode>(null);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [timeValue, setTimeValue] = useState(toInputValue(new Date()));
@@ -558,6 +586,8 @@ export default function Home() {
 
   const selectedDateIsToday = isDateToday(selectedDate);
   const selectedDateLabel = selectedDateIsToday ? "Today" : formatShortDate(selectedDate);
+  const calendarDays = useMemo(() => buildCalendarDays(calendarMonth), [calendarMonth]);
+  const canViewNextMonth = addMonths(calendarMonth, 1).getTime() <= startOfMonth(new Date()).getTime();
   const lastFeed = latestEvent(selectedDayEvents, "feeding");
   const lastNap = latestEvent(selectedDayEvents, "nap");
   const lastDiaper = latestEvent(selectedDayEvents, "diaper");
@@ -679,9 +709,12 @@ export default function Home() {
   }
 
   function loadSampleDay() {
+    const today = new Date();
     setEvents(sampleDay());
     setSettings({ babyName: "Baby", babyAgeMonths: 5 });
-    setSelectedDate(new Date());
+    setSelectedDate(today);
+    setCalendarMonth(startOfMonth(today));
+    setCalendarOpen(false);
     setActiveNap(null);
     setHandoff(null);
     resetForm();
@@ -714,22 +747,28 @@ export default function Home() {
   }
 
   function changeSelectedDate(nextDate: Date) {
-    setSelectedDate(nextDate);
+    if (isAfterToday(nextDate)) return;
+
+    const calendarDate = normalizeCalendarDate(nextDate);
+    setSelectedDate(calendarDate);
+    setCalendarMonth(startOfMonth(calendarDate));
+    setCalendarOpen(false);
     setHandoff(null);
     resetForm();
-  }
-
-  function handleSelectedDateInput(value: string) {
-    const nextDate = fromDateInputValue(value);
-    if (!nextDate) return;
-
-    changeSelectedDate(nextDate);
   }
 
   function shiftSelectedDate(days: number) {
     const nextDate = new Date(selectedDate);
     nextDate.setDate(nextDate.getDate() + days);
     changeSelectedDate(nextDate);
+  }
+
+  function shiftCalendarMonth(months: number) {
+    setCalendarMonth((currentMonth) => {
+      const nextMonth = addMonths(currentMonth, months);
+      if (nextMonth.getTime() > startOfMonth(new Date()).getTime()) return currentMonth;
+      return nextMonth;
+    });
   }
 
   const metrics = [
@@ -770,18 +809,70 @@ export default function Home() {
           <button className="date-step-button" type="button" aria-label="Previous day" onClick={() => shiftSelectedDate(-1)}>
             <ChevronLeft size={17} />
           </button>
-          <label className="date-picker-label">
-            <CalendarDays size={18} />
-            <span>{selectedDateIsToday ? "Today" : formatShortDate(selectedDate)}</span>
-            <input
-              aria-label="Select care date"
-              type="date"
-              value={toDateInputValue(selectedDate)}
-              onChange={(event) => handleSelectedDateInput(event.target.value)}
-              onInput={(event) => handleSelectedDateInput(event.currentTarget.value)}
-            />
-          </label>
-          <button className="date-step-button" type="button" aria-label="Next day" onClick={() => shiftSelectedDate(1)}>
+          <div className="calendar-picker">
+            <button
+              className="date-picker-button"
+              type="button"
+              aria-label="Open calendar"
+              aria-haspopup="dialog"
+              aria-expanded={calendarOpen}
+              onClick={() => setCalendarOpen((isOpen) => !isOpen)}
+            >
+              <CalendarDays size={18} />
+              <span>{selectedDateIsToday ? "Today" : formatShortDate(selectedDate)}</span>
+            </button>
+            {calendarOpen ? (
+              <div className="calendar-popover" role="dialog" aria-label="Select care day">
+                <div className="calendar-header">
+                  <button className="calendar-nav-button" type="button" aria-label="Previous month" onClick={() => shiftCalendarMonth(-1)}>
+                    <ChevronLeft size={16} />
+                  </button>
+                  <strong>{formatMonthYear(calendarMonth)}</strong>
+                  <button
+                    className="calendar-nav-button"
+                    type="button"
+                    aria-label="Next month"
+                    disabled={!canViewNextMonth}
+                    onClick={() => shiftCalendarMonth(1)}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+                <div className="calendar-grid" aria-hidden="true">
+                  {calendarWeekdays.map((dayLabel) => (
+                    <span className="calendar-weekday" key={dayLabel}>
+                      {dayLabel}
+                    </span>
+                  ))}
+                </div>
+                <div className="calendar-grid">
+                  {calendarDays.map((day, index) => {
+                    if (!day) {
+                      return <span className="calendar-empty-cell" key={`empty-${index}`} />;
+                    }
+
+                    const dayIsSelected = isSameCalendarDay(day, selectedDate);
+                    const dayIsToday = isDateToday(day);
+
+                    return (
+                      <button
+                        className={`calendar-day${dayIsSelected ? " is-selected" : ""}${dayIsToday ? " is-today" : ""}`}
+                        type="button"
+                        key={day.toISOString()}
+                        aria-label={formatDate(day)}
+                        aria-pressed={dayIsSelected}
+                        disabled={isAfterToday(day)}
+                        onClick={() => changeSelectedDate(day)}
+                      >
+                        {day.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+          </div>
+          <button className="date-step-button" type="button" aria-label="Next day" disabled={selectedDateIsToday} onClick={() => shiftSelectedDate(1)}>
             <ChevronRight size={17} />
           </button>
           {!selectedDateIsToday ? (
