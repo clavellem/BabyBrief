@@ -136,9 +136,14 @@ button:disabled {
 }
 
 .date-picker-label input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
+  position: static;
+  width: 128px;
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #cbd8d1;
+  color-scheme: dark;
   cursor: pointer;
 }
 

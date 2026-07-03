@@ -474,7 +474,7 @@ function buildHandoff(events: BabyEvent[], settings: BabySettings, selectedDate:
     lastNap: lastNapLine,
     lastDiaper: lastDiaperLine,
     nextNap: predictionLine,
-    missing: missing.length ? missing : ["No obvious gaps from today's logs."],
+    missing: missing.length ? missing : [viewingToday ? "No obvious gaps from today's logs." : "No obvious gaps from this day's logs."],
     copyable
   };
 }
@@ -760,6 +760,7 @@ export default function Home() {
               type="date"
               value={toDateInputValue(selectedDate)}
               onChange={(event) => changeSelectedDate(fromDateInputValue(event.target.value))}
+              onInput={(event) => changeSelectedDate(fromDateInputValue(event.currentTarget.value))}
             />
           </label>
           <button className="date-step-button" type="button" aria-label="Next day" onClick={() => shiftSelectedDate(1)}>
@@ -1115,7 +1116,7 @@ export default function Home() {
               </div>
               <div>
                 <MessageSquareText size={16} />
-                <span>Send handoff</span>
+                <span>Copy handoff</span>
               </div>
             </div>
             <div className="form-actions handoff-actions">
