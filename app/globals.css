@@ -106,8 +106,7 @@ button {
 
 .panel,
 .metric-card,
-.timeline-row,
-.summary-box {
+.timeline-row {
   border: 1px solid rgba(227, 219, 206, 0.86);
   border-radius: 8px;
   background: var(--panel);
@@ -457,14 +456,6 @@ textarea:focus {
   color: #4f5852;
 }
 
-.summary-box {
-  padding: 14px;
-  box-shadow: none;
-  background: #fffaf2;
-  line-height: 1.55;
-}
-
-.summary-box span,
 .handoff-review span,
 .missing-list span {
   display: block;
@@ -474,7 +465,6 @@ textarea:focus {
   text-transform: uppercase;
 }
 
-.summary-box p,
 .handoff-review p,
 .missing-list p {
   margin: 5px 0 0;

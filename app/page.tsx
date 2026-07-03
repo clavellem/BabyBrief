@@ -15,7 +15,6 @@ import {
   Pencil,
   Plus,
   RotateCcw,
-  Share2,
   Sparkles,
   Trash2,
   Utensils,
@@ -396,7 +395,6 @@ export default function Home() {
   const [note, setNote] = useState("");
   const [handoff, setHandoff] = useState<HandoffSummary | null>(null);
   const [copied, setCopied] = useState(false);
-  const [shared, setShared] = useState(false);
 
   useEffect(() => {
     const storedEvents = window.localStorage.getItem(eventStorageKey);
@@ -468,7 +466,6 @@ export default function Home() {
     setDiaperType("wet");
     setNote(activeNap && mode === "nap-end" ? activeNap.note ?? "" : "");
     setCopied(false);
-    setShared(false);
   }
 
   function resetForm() {
@@ -486,7 +483,6 @@ export default function Home() {
   function editEvent(event: BabyEvent) {
     setEditingEventId(event.id);
     setCopied(false);
-    setShared(false);
 
     if (event.type === "feeding") {
       setFormMode("feeding");
@@ -582,7 +578,6 @@ export default function Home() {
     if (!handoff) return;
     await navigator.clipboard.writeText(handoff.copyable);
     setCopied(true);
-    setShared(false);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
@@ -590,19 +585,7 @@ export default function Home() {
     if (!handoff) return;
     await navigator.clipboard.writeText(formatHandoffForClipboard(handoff));
     setCopied(true);
-    setShared(false);
     window.setTimeout(() => setCopied(false), 1800);
-  }
-
-  async function shareHandoff() {
-    if (!handoff || !navigator.share) return;
-    await navigator.share({
-      title: `${settings.babyName} handoff`,
-      text: handoff.copyable
-    });
-    setShared(true);
-    setCopied(false);
-    window.setTimeout(() => setShared(false), 1800);
   }
 
   const metrics = [
@@ -631,7 +614,6 @@ export default function Home() {
         : formMode === "feeding"
           ? "Add feeding"
           : "Add diaper";
-  const canShare = typeof navigator !== "undefined" && Boolean(navigator.share);
 
   return (
     <main className="shell">
@@ -1001,12 +983,6 @@ export default function Home() {
                 <Copy size={17} />
                 {copied ? "Copied" : "Copy message"}
               </button>
-              {canShare ? (
-                <button className="secondary-button" type="button" onClick={shareHandoff} disabled={!handoff}>
-                  <Share2 size={17} />
-                  {shared ? "Shared" : "Share"}
-                </button>
-              ) : null}
             </div>
             {handoff ? (
               <div className="handoff-panel">
@@ -1037,10 +1013,6 @@ export default function Home() {
                   {handoff.missing.map((item) => (
                     <p key={item}>{item}</p>
                   ))}
-                </div>
-                <div className="summary-box">
-                  <span>Copyable message</span>
-                  <p>{handoff.copyable}</p>
                 </div>
                 <button className="ghost-button full-width-button" type="button" onClick={copyFullHandoff}>
                   <Clipboard size={17} />
