@@ -622,11 +622,6 @@ export default function Home() {
     { label: "Feeds today", value: String(feedCount) },
     { label: "Diapers today", value: String(diaperCount) }
   ];
-  const rightNowSummary = [
-    lastFeed ? `Fed ${formatSince(lastFeed.timestamp)}` : "No feed today",
-    lastNap ? `Nap ended ${formatSince(lastNap.endTime)}` : "No completed nap",
-    lastDiaper ? `Diaper ${formatSince(lastDiaper.timestamp)}` : "No diaper today"
-  ].join(" | ");
   const formTitle = editingEventId
     ? "Edit logged event"
     : formMode === "nap-start"
@@ -831,18 +826,6 @@ export default function Home() {
         </section>
 
         <section className="right-stack">
-          <div className="right-now-card">
-            <div>
-              <span className="section-kicker">Right now</span>
-              <strong>{rightNowSummary}</strong>
-            </div>
-            <p>
-              {prediction.lowerIso && prediction.upperIso
-                ? `Next nap window: ${formatTime(prediction.lowerIso)}-${formatTime(prediction.upperIso)}`
-                : "Log a completed nap to estimate the next nap window."}
-            </p>
-          </div>
-
           <div className="metrics-grid" aria-label="Current status">
             {metrics.map((metric) => (
               <article className="metric-card" key={metric.label}>
