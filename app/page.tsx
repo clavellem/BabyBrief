@@ -108,7 +108,18 @@ function toDateInputValue(date: Date) {
 }
 
 function fromDateInputValue(value: string) {
-  return new Date(`${value}T12:00:00`);
+  if (!value) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(year, month - 1, day, 12, 0, 0, 0);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) {
+    return null;
+  }
+
+  return parsed;
 }
 
 function fromInputValue(value: string) {
@@ -708,6 +719,13 @@ export default function Home() {
     resetForm();
   }
 
+  function handleSelectedDateInput(value: string) {
+    const nextDate = fromDateInputValue(value);
+    if (!nextDate) return;
+
+    changeSelectedDate(nextDate);
+  }
+
   function shiftSelectedDate(days: number) {
     const nextDate = new Date(selectedDate);
     nextDate.setDate(nextDate.getDate() + days);
@@ -759,8 +777,8 @@ export default function Home() {
               aria-label="Select care date"
               type="date"
               value={toDateInputValue(selectedDate)}
-              onChange={(event) => changeSelectedDate(fromDateInputValue(event.target.value))}
-              onInput={(event) => changeSelectedDate(fromDateInputValue(event.currentTarget.value))}
+              onChange={(event) => handleSelectedDateInput(event.target.value)}
+              onInput={(event) => handleSelectedDateInput(event.currentTarget.value)}
             />
           </label>
           <button className="date-step-button" type="button" aria-label="Next day" onClick={() => shiftSelectedDate(1)}>
